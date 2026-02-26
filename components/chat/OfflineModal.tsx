@@ -874,21 +874,36 @@ export function OfflineModal({
         return <CoverPageForm data={formData} onChange={setFormData} />;
       case 'introduction':
         return (
-          <TextareaField
-            value={(formData.content as string) || ''}
-            onChange={(v) => setFormData({ ...formData, content: v })}
-            rows={10}
-            placeholder="Write the introduction text here..."
-          />
+          <>
+            <p className="text-xs text-gray-500 mb-2">
+              Supports <span className="text-white font-medium">Markdown</span> — use{' '}
+              <code className="bg-white/10 px-1 rounded">## Heading</code>,{' '}
+              <code className="bg-white/10 px-1 rounded">**bold**</code>,{' '}
+              <code className="bg-white/10 px-1 rounded">- bullet</code> etc.
+            </p>
+            <TextareaField
+              value={(formData.content as string) || ''}
+              onChange={(v) => setFormData({ ...formData, content: v })}
+              rows={12}
+              placeholder={'## Overview\n\nWrite your introduction here...\n\n**Key points:**\n- Point 1\n- Point 2'}
+            />
+          </>
         );
       case 'keyModules':
         return (
-          <TextareaField
-            value={(formData.content as string) || ''}
-            onChange={(v) => setFormData({ ...formData, content: v })}
-            rows={10}
-            placeholder={'Module Name:\n• Feature 1\n• Feature 2'}
-          />
+          <>
+            <p className="text-xs text-gray-500 mb-2">
+              Supports <span className="text-white font-medium">Markdown</span> — use{' '}
+              <code className="bg-white/10 px-1 rounded">## Module Name</code> for section headers and{' '}
+              <code className="bg-white/10 px-1 rounded">- feature</code> for bullets.
+            </p>
+            <TextareaField
+              value={(formData.content as string) || ''}
+              onChange={(v) => setFormData({ ...formData, content: v })}
+              rows={12}
+              placeholder={'## User Management\n- Registration & login\n- Role-based access\n\n## Dashboard\n- Analytics overview\n- Real-time charts'}
+            />
+          </>
         );
       case 'techStack':
         return <TechStackForm data={formData} onChange={setFormData} />;

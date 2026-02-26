@@ -1,5 +1,6 @@
 'use client';
 
+import ReactMarkdown from 'react-markdown';
 import type {
   SectionKey,
   ProposalSections,
@@ -158,59 +159,72 @@ function CoverPreview({ data, theme }: { data: CoverPageData; theme?: string }) 
   );
 }
 
+function MarkdownPreview({ content, placeholder }: { content: string; placeholder: string }) {
+  if (!content) return <p className="text-xs text-gray-400 italic">{placeholder}</p>;
+  return (
+    <ReactMarkdown
+      components={{
+        h1: ({ children }) => (
+          <h1 className="text-base font-bold text-[#0B1220] mt-3 mb-1">{children}</h1>
+        ),
+        h2: ({ children }) => (
+          <div className="bg-[#0B1220] text-white text-xs font-bold px-2 py-1 rounded mb-2 mt-4 first:mt-0 uppercase tracking-wide">
+            {children}
+          </div>
+        ),
+        h3: ({ children }) => (
+          <h3 className="text-sm font-bold text-[#0B1220] mt-3 mb-1">{children}</h3>
+        ),
+        h4: ({ children }) => (
+          <h4 className="text-xs font-bold text-gray-700 mt-2 mb-0.5">{children}</h4>
+        ),
+        p: ({ children }) => (
+          <p className="text-sm text-gray-700 leading-relaxed mb-2">{children}</p>
+        ),
+        ul: ({ children }) => <ul className="mb-2 space-y-0.5">{children}</ul>,
+        ol: ({ children }) => <ol className="mb-2 space-y-0.5 pl-1">{children}</ol>,
+        li: ({ children }) => (
+          <li className="flex items-start gap-1.5 text-sm text-gray-700">
+            <span className="text-[#E85D2B] mt-0.5 flex-shrink-0 font-bold leading-4">•</span>
+            <span className="flex-1">{children}</span>
+          </li>
+        ),
+        strong: ({ children }) => (
+          <strong className="font-semibold text-[#0B1220]">{children}</strong>
+        ),
+        em: ({ children }) => <em className="italic text-gray-600">{children}</em>,
+        hr: () => <hr className="my-3 border-gray-200" />,
+        blockquote: ({ children }) => (
+          <blockquote className="border-l-2 border-[#E85D2B] pl-3 text-sm text-gray-600 italic my-2">
+            {children}
+          </blockquote>
+        ),
+        code: ({ children }) => (
+          <code className="bg-gray-100 text-gray-800 text-xs px-1 py-0.5 rounded font-mono">
+            {children}
+          </code>
+        ),
+      }}
+    >
+      {content}
+    </ReactMarkdown>
+  );
+}
+
 function IntroPreview({ data }: { data: IntroductionData }) {
   return (
     <div className="mb-4">
       <SectionHeader title="Introduction" />
-      <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-        {data.content || 'Introduction will appear here...'}
-      </p>
+      <MarkdownPreview content={data.content} placeholder="Introduction will appear here..." />
     </div>
   );
 }
 
 function KeyModulesPreview({ data }: { data: KeyModulesData }) {
-  if (!data.content) {
-    return (
-      <div className="mb-4">
-        <SectionHeader title="Key Modules & Features" />
-        <p className="text-xs text-gray-400 italic">Key modules & features will appear here...</p>
-      </div>
-    );
-  }
-
-  // Parse content into groups and bullets for styled rendering
-  type ParsedLine = { type: 'header'; text: string } | { type: 'bullet'; text: string } | { type: 'text'; text: string };
-  const parsed: ParsedLine[] = data.content.split('\n').map((line) => {
-    const trimmed = line.trim();
-    if (!trimmed) return { type: 'text', text: '' };
-    if (trimmed.endsWith(':') && !trimmed.startsWith('•')) return { type: 'header', text: trimmed.slice(0, -1) };
-    if (trimmed.startsWith('•')) return { type: 'bullet', text: trimmed.slice(1).trim() };
-    return { type: 'text', text: trimmed };
-  });
-
   return (
     <div className="mb-4">
       <SectionHeader title="Key Modules & Features" />
-      {parsed.map((line, i) => {
-        if (!line.text) return <div key={i} className="h-1" />;
-        if (line.type === 'header') {
-          return (
-            <div key={i} className="bg-[#0B1220] text-white text-xs font-bold px-2 py-1 rounded mb-2 mt-3 first:mt-0">
-              {line.text.toUpperCase()}
-            </div>
-          );
-        }
-        if (line.type === 'bullet') {
-          return (
-            <div key={i} className="flex items-center gap-1.5 text-xs text-gray-700 pl-2 mb-1">
-              <span className="w-1.5 h-1.5 bg-[#E85D2B] rounded-full inline-block flex-shrink-0" />
-              {line.text}
-            </div>
-          );
-        }
-        return <p key={i} className="text-xs text-gray-700 mb-1">{line.text}</p>;
-      })}
+      <MarkdownPreview content={data.content} placeholder="Key modules & features will appear here..." />
     </div>
   );
 }
