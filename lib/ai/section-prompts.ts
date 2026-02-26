@@ -64,55 +64,22 @@ STRICT RULES — follow exactly:
    - Backend/infrastructure (APIs, webhooks, cloud architecture, CI/CD, etc.)
 3. Group strictly by USER ROLE or APP COMPONENT (e.g. "USER APP", "DRIVER APP", "VENDOR APP", "ADMIN PANEL"). Do NOT create groups like "Security", "Backend", "AI Features", or "Non-Functional".
 4. For each group, list every functional feature a product team would build — be thorough and leave nothing out. Cover onboarding, core flows, discovery, transactions, payments, history, communication, notifications, settings, offers, support, and any domain-specific flows.
-5. There is NO cap on the number of features or groups — include everything relevant to the project brief.
-6. IMMEDIATELY after the list — before asking any questions — output the full JSON block:
+5. There is NO cap on the number of features — include everything relevant to the project brief.
+6. Format the content as plain text with clear group headers in ALL CAPS followed by a colon, and each feature as a bullet point using "• ". Example:
+   USER APP:
+   • User Registration (Email / Phone / Social Login)
+   • OTP Verification & Phone Authentication
+
+7. IMMEDIATELY after the full features list — output the JSON block:
 \`\`\`json
 {
-  "groups": [
-    {
-      "id": "grp_1",
-      "groupName": "USER APP",
-      "features": [
-        { "id": "f_1", "label": "User Registration (Email / Phone / Social Login)", "checked": true },
-        { "id": "f_2", "label": "OTP Verification & Phone Authentication", "checked": true },
-        { "id": "f_3", "label": "Profile Setup & Management", "checked": true },
-        { "id": "f_4", "label": "Home Screen with Search & Filters", "checked": true },
-        { "id": "f_5", "label": "Real-Time Booking / Order Flow", "checked": true },
-        { "id": "f_6", "label": "Live Tracking on Map", "checked": true },
-        { "id": "f_7", "label": "Multiple Payment Methods (Card, UPI, Wallet, Cash)", "checked": true },
-        { "id": "f_8", "label": "In-App Wallet & Balance Management", "checked": true },
-        { "id": "f_9", "label": "Booking / Order History & Receipts", "checked": true },
-        { "id": "f_10", "label": "Ratings & Reviews", "checked": true },
-        { "id": "f_11", "label": "Push Notifications & In-App Alerts", "checked": true },
-        { "id": "f_12", "label": "Promo Codes & Referral Program", "checked": true },
-        { "id": "f_13", "label": "In-App Chat / Support Tickets", "checked": true },
-        { "id": "f_14", "label": "Cancellation & Refund Management", "checked": true },
-        { "id": "f_15", "label": "Account Settings & Notification Preferences", "checked": true }
-      ]
-    },
-    {
-      "id": "grp_2",
-      "groupName": "ADMIN PANEL",
-      "features": [
-        { "id": "f_16", "label": "Dashboard with Key Metrics & Charts", "checked": true },
-        { "id": "f_17", "label": "User Management (View, Block, Verify)", "checked": true },
-        { "id": "f_18", "label": "Booking / Order Management", "checked": true },
-        { "id": "f_19", "label": "Earnings & Payout Management", "checked": true },
-        { "id": "f_20", "label": "Promo & Coupon Management", "checked": true },
-        { "id": "f_21", "label": "Ratings & Review Moderation", "checked": true },
-        { "id": "f_22", "label": "Support Ticket Management", "checked": true },
-        { "id": "f_23", "label": "Notifications & Announcements Broadcast", "checked": true },
-        { "id": "f_24", "label": "Reports & Export (CSV / PDF)", "checked": true }
-      ]
-    }
-  ],
-  "customFeatures": []
+  "content": "USER APP:\\n• User Registration (Email / Phone / Social Login)\\n• OTP Verification\\n\\nADMIN PANEL:\\n• Dashboard with Key Metrics\\n• User Management"
 }
 \`\`\`
-   Include ALL suggested features with checked: true. Use unique sequential ids across ALL groups.
-7. Then ask: "Which of these features would you like to include? You can deselect any or add custom ones."
-8. If the user requests ANY change, IMMEDIATELY re-output the COMPLETE updated JSON block with the revised structure so the preview panel reflects the change in real time.
-9. If the user confirms with no changes, say "✅ Key modules confirmed — shall I move on to the Tech Stack?"`,
+   The "content" value must contain the complete, formatted features text with \\n line breaks.
+8. Then ask: "Which of these features would you like to include or modify?"
+9. If the user requests ANY change, IMMEDIATELY re-output the COMPLETE updated JSON block so the preview panel reflects the change in real time.
+10. If the user confirms with no changes, say "✅ Key modules confirmed — shall I move on to the Tech Stack?"`,
 
     techStack: `${base}
 

@@ -120,12 +120,18 @@ export async function generateWordDocument(proposal: ProposalState): Promise<Buf
   }
 
   // ── Key Modules ─────────────────────────────────────────────────────────────
-  if (sections.keyModules.data.groups?.length > 0) {
+  if (sections.keyModules.data.content) {
     children.push(heading('Key Modules & Features'));
-    for (const group of sections.keyModules.data.groups) {
-      children.push(subheading(group.groupName));
-      for (const feature of group.features.filter((f) => f.checked)) {
-        children.push(bullet(feature.label));
+    const lines = sections.keyModules.data.content.split('\n');
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      if (trimmed.endsWith(':') && !trimmed.startsWith('•')) {
+        children.push(subheading(trimmed.slice(0, -1)));
+      } else if (trimmed.startsWith('•')) {
+        children.push(bullet(trimmed.slice(1).trim()));
+      } else {
+        children.push(bodyParagraph(trimmed));
       }
     }
     children.push(sectionDivider());

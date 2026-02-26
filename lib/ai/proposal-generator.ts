@@ -17,8 +17,8 @@ export async function generateSectionStream(
       ...conversationHistory,
       { role: 'user', content: userMessage },
     ],
-    temperature: 1,
-    max_completion_tokens: 16384,
+    temperature: 0.7,
+    max_completion_tokens: 8192,
     reasoning_effort: 'medium' as never,
     stream: true,
   });
@@ -42,8 +42,8 @@ export async function generateSectionContent(
       ...conversationHistory,
       { role: 'user', content: userMessage },
     ],
-    temperature: 1,
-    max_completion_tokens: 16384,
+    temperature: 0.7,
+    max_completion_tokens: 8192,
     reasoning_effort: 'medium' as never,
     stream: false,
   });

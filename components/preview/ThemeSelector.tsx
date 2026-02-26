@@ -7,6 +7,8 @@ const THEMES = [
   { value: 'default', label: 'Classic' },
   { value: 'dark', label: 'Dark' },
   { value: 'minimal', label: 'Minimal' },
+  { value: 'lightBlue', label: 'Light Blue' },
+  { value: 'darkBlue', label: 'Dark Blue' },
 ] as const;
 
 export function ThemeSelector() {

@@ -7,9 +7,10 @@ import clsx from 'clsx';
 interface SectionProgressProps {
   currentSection: SectionKey;
   confirmedSections: SectionKey[];
+  onSectionClick?: (key: SectionKey) => void;
 }
 
-export function SectionProgress({ currentSection, confirmedSections }: SectionProgressProps) {
+export function SectionProgress({ currentSection, confirmedSections, onSectionClick }: SectionProgressProps) {
   return (
     <div className="w-full px-4 py-3 border-b border-gray-200 bg-white">
       {/* Section label */}
@@ -41,11 +42,12 @@ export function SectionProgress({ currentSection, confirmedSections }: SectionPr
                 />
               )}
               <div
-                title={section.title}
+                title={isConfirmed ? `Go back to ${section.title}` : section.title}
+                onClick={isConfirmed ? () => onSectionClick?.(section.key) : undefined}
                 className={clsx(
                   'w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-all',
                   isConfirmed
-                    ? 'bg-[#E85D2B] text-white'
+                    ? 'bg-[#E85D2B] text-white cursor-pointer hover:opacity-80'
                     : isCurrent
                     ? 'bg-[#0B1220] text-white ring-2 ring-[#0B1220] ring-offset-1'
                     : 'bg-gray-100 text-gray-400'

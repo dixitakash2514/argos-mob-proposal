@@ -77,10 +77,12 @@ export function ProposalPreview({ readOnly = false }: ProposalPreviewProps) {
     (s) => proposal.confirmedSections.includes(s.key) && s.key !== 'coverPage'
   );
 
-  const themeClasses = {
+  const themeClasses: Record<string, string> = {
     default: 'bg-white',
     dark: 'bg-gray-950 text-white',
     minimal: 'bg-gray-50',
+    lightBlue: 'bg-slate-50',
+    darkBlue: 'bg-slate-950 text-white',
   };
 
   return (
@@ -174,7 +176,7 @@ export function ProposalPreview({ readOnly = false }: ProposalPreviewProps) {
 
         <div className="px-4 py-4 space-y-4">
           {/* Cover page — always shown */}
-          <PreviewSection sectionKey="coverPage" sections={proposal.sections} />
+          <PreviewSection sectionKey="coverPage" sections={proposal.sections} theme={proposal.theme} />
 
           {/* Why Choose Us — always shown (static branding) */}
           <div className="border-t border-gray-100 pt-4">

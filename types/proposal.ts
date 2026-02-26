@@ -53,21 +53,8 @@ export interface IntroductionData {
   content: string;
 }
 
-export interface KeyModuleFeature {
-  id: string;
-  label: string;
-  checked: boolean;
-}
-
-export interface KeyModuleGroup {
-  id: string;
-  groupName: string;
-  features: KeyModuleFeature[];
-}
-
 export interface KeyModulesData {
-  groups: KeyModuleGroup[];
-  customFeatures: string[];
+  content: string;
 }
 
 export interface TechStackItem {
@@ -192,7 +179,7 @@ export interface ProposalState {
   updatedAt: Date;
   currentSection: SectionKey;
   confirmedSections: SectionKey[];
-  theme: 'default' | 'dark' | 'minimal';
+  theme: 'default' | 'dark' | 'minimal' | 'lightBlue' | 'darkBlue';
   status: 'draft' | 'complete';
   sections: ProposalSections;
   version?: number;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { useProposalStore } from '@/lib/store/proposal-store';
 import { SectionProgress } from './SectionProgress';
@@ -8,6 +8,7 @@ import { MessageList } from './MessageList';
 import { ChatInput } from './ChatInput';
 import type { ChatMessage, SectionKey } from '@/types/proposal';
 import { SECTION_ORDER } from '@/types/proposal';
+import { OfflineModal } from './OfflineModal';
 
 // ─── Extract JSON from AI response (handles ```json blocks OR bare { } objects) ─
 function extractJsonBlock(content: string): Record<string, unknown> | null {
@@ -37,7 +38,29 @@ export function ChatPanel() {
     setProposalField,
     setIsSaving,
     setNextSectionPending,
+    confirmSection,
+    setCurrentSection,
   } = useProposalStore();
+
+  // Online / Offline mode toggle
+  const [offlineMode, setOfflineMode] = useState(false);
+
+  // Manual input modal — used by both offline mode and error fallback
+  const [manualOpen, setManualOpen] = useState(false);
+  const [manualInitialData, setManualInitialData] = useState<Record<string, unknown>>({});
+  const manualSectionRef = useRef<SectionKey | null>(null);
+  // 'offline' = user-initiated, no auto-advance | 'error' = API failed, auto-advance
+  const manualTriggerRef = useRef<'offline' | 'error'>('error');
+
+  /** Opens the manual input modal pre-filled with the section's current data */
+  function openManualModal(sectionKey: SectionKey, trigger: 'offline' | 'error') {
+    const latest = useProposalStore.getState().proposal;
+    const data = (latest?.sections[sectionKey]?.data ?? {}) as Record<string, unknown>;
+    manualSectionRef.current = sectionKey;
+    manualTriggerRef.current = trigger;
+    setManualInitialData(data);
+    setManualOpen(true);
+  }
 
   const sendMessage = useCallback(
     async (userText: string) => {
@@ -63,6 +86,15 @@ export function ChatPanel() {
         sectionKey: currentSection,
       };
       addMessage(aiMsg);
+
+      // ── Offline mode: skip API entirely, open manual input modal ──────────────
+      if (offlineMode) {
+        const sectionTitle = SECTION_ORDER.find((s) => s.key === currentSection)?.title ?? currentSection;
+        updateLastMessage(`Offline mode — paste your content for **${sectionTitle}** below.`);
+        openManualModal(currentSection, 'offline');
+        return;
+      }
+
       setIsStreaming(true);
 
       try {
@@ -135,13 +167,14 @@ export function ChatPanel() {
         await autoSave(proposal.id);
       } catch (err) {
         console.error('Chat error:', err);
-        updateLastMessage('Sorry, there was an error. Please try again.');
+        updateLastMessage('AI is unavailable right now. You can paste content manually to continue, or retry.');
+        openManualModal(currentSection, 'error');
       } finally {
         setIsStreaming(false);
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [proposal, isStreaming, addMessage, updateLastMessage, setIsStreaming]
+    [proposal, isStreaming, offlineMode, addMessage, updateLastMessage, setIsStreaming]
   );
 
   // When the user clicks "Confirm & Continue" in the preview panel, this flag
@@ -241,6 +274,30 @@ export function ChatPanel() {
     }
   };
 
+  const handleOfflineSubmit = async (data: Record<string, unknown>) => {
+    const sectionKey = manualSectionRef.current;
+    if (!sectionKey || !proposal) return;
+
+    // Apply form data directly to store → live preview updates
+    if (sectionKey === 'coverPage') {
+      if (typeof data.clientName === 'string') setProposalField('clientName', data.clientName);
+      if (typeof data.projectTitle === 'string') setProposalField('projectTitle', data.projectTitle);
+    }
+    updateSectionData(sectionKey, data);
+    updateLastMessage(`[Section updated offline: ${SECTION_ORDER.find((s) => s.key === sectionKey)?.title ?? sectionKey}]`);
+
+    if (manualTriggerRef.current === 'error') {
+      // Error fallback: auto-confirm and advance to next section
+      confirmSection(sectionKey);
+      setNextSectionPending(true);
+    }
+    // Offline mode: just apply — user reviews in preview and manually confirms
+
+    await autoSave(proposal.id);
+    manualSectionRef.current = null;
+    setManualOpen(false);
+  };
+
   const handleStart = async () => {
     if (!proposal || messages.length > 0) return;
     const isRevision = !!proposal.parentId;
@@ -274,9 +331,24 @@ export function ChatPanel() {
 
   return (
     <div className="flex flex-col h-full bg-gray-50">
+      {/* Online / Offline toggle */}
+      <div className="flex items-center justify-end gap-2 px-4 py-2 border-b border-gray-200 bg-white">
+        <span className={`text-xs font-medium ${offlineMode ? 'text-gray-400' : 'text-[#E85D2B]'}`}>
+          {offlineMode ? 'Offline' : 'Online'}
+        </span>
+        <button
+          onClick={() => setOfflineMode((v) => !v)}
+          className={`relative inline-flex h-5 w-9 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${offlineMode ? 'bg-gray-300' : 'bg-[#E85D2B]'}`}
+          title={offlineMode ? 'Switch to Online (AI) mode' : 'Switch to Offline (manual paste) mode'}
+        >
+          <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition-transform duration-200 ${offlineMode ? 'translate-x-0' : 'translate-x-4'}`} />
+        </button>
+      </div>
+
       <SectionProgress
         currentSection={proposal.currentSection}
         confirmedSections={proposal.confirmedSections}
+        onSectionClick={(key) => setCurrentSection(key)}
       />
 
       <MessageList messages={messages} isStreaming={isStreaming} />
@@ -301,6 +373,15 @@ export function ChatPanel() {
             ? 'ArgosMob AI is thinking...'
             : `Reply to Section ${SECTION_ORDER.find((s) => s.key === proposal.currentSection)?.order ?? ''}: ${SECTION_ORDER.find((s) => s.key === proposal.currentSection)?.title ?? ''}`
         }
+      />
+
+      <OfflineModal
+        open={manualOpen}
+        sectionKey={manualSectionRef.current ?? 'coverPage'}
+        initialData={manualInitialData}
+        trigger={manualTriggerRef.current}
+        onSubmit={handleOfflineSubmit}
+        onClose={() => setManualOpen(false)}
       />
     </div>
   );

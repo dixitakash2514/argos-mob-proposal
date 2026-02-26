@@ -1,5 +1,7 @@
+'use client';
+
 import Link from 'next/link';
-import { UserButton } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
 
 const features = [
   { icon: '🤖', title: 'AI-Guided Interview', desc: 'Answer simple questions — the AI writes the proposal content for you' },
@@ -15,6 +17,13 @@ const sections = [
 ];
 
 export default function LandingPage() {
+  const router = useRouter();
+
+  async function handleSignOut() {
+    await fetch('/api/auth/logout', { method: 'POST' });
+    router.push('/sign-in');
+  }
+
   return (
     <div className="min-h-full bg-[#0B1220]">
       {/* Nav */}
@@ -41,7 +50,12 @@ export default function LandingPage() {
           >
             Create Proposal →
           </Link>
-          <UserButton afterSignOutUrl="/sign-in" />
+          <button
+            onClick={handleSignOut}
+            className="text-gray-400 hover:text-white text-sm font-medium transition-colors"
+          >
+            Sign out
+          </button>
         </div>
       </nav>
 

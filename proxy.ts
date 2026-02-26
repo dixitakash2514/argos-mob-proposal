@@ -1,6 +1,7 @@
-import { clerkMiddleware, createRouteMatcher, clerkClient } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { jwtVerify } from 'jose';
+import { COOKIE_NAME } from '@/lib/auth/session';
 
 // In-memory rate limiter (per-IP, 20 req/min on /api/chat)
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
@@ -15,23 +16,22 @@ function getClientIP(req: NextRequest): string {
   );
 }
 
-// Parses ALLOWED_EMAILS env var — handles quotes and extra whitespace
-// e.g. `"alice@gmail.com", "bob@gmail.com"` or `alice@gmail.com,bob@gmail.com`
-function getAllowedEmails(): Set<string> {
-  const raw = process.env.ALLOWED_EMAILS ?? '';
-  return new Set(
-    raw
-      .split(',')
-      .map((e) => e.trim().replace(/^["']|["']$/g, '').toLowerCase())
-      .filter(Boolean)
-  );
+function getSecret(): Uint8Array {
+  return new TextEncoder().encode(process.env.SESSION_SECRET ?? '');
 }
 
-const isPublicRoute = createRouteMatcher(['/sign-in(.*)', '/unauthorized']);
+// Public routes that don't require a session cookie
+const PUBLIC_PREFIXES = ['/sign-in', '/api/auth/'];
 
-export const proxy = clerkMiddleware(async (auth, req) => {
+function isPublic(pathname: string): boolean {
+  return PUBLIC_PREFIXES.some((p) => pathname.startsWith(p));
+}
+
+export async function proxy(req: NextRequest) {
+  const { pathname } = req.nextUrl;
+
   // Rate limit /api/chat before auth check
-  if (req.nextUrl.pathname.startsWith('/api/chat')) {
+  if (pathname.startsWith('/api/chat')) {
     const ip = getClientIP(req);
     const now = Date.now();
     const entry = rateLimitMap.get(ip);
@@ -49,28 +49,25 @@ export const proxy = clerkMiddleware(async (auth, req) => {
     }
   }
 
-  if (isPublicRoute(req)) return;
+  // Allow public routes through
+  if (isPublic(pathname)) return NextResponse.next();
 
-  // Require authentication
-  await auth.protect();
-
-  // Email allowlist check (only when ALLOWED_EMAILS is configured)
-  const allowedEmails = getAllowedEmails();
-  if (allowedEmails.size > 0) {
-    const { userId } = await auth();
-    if (userId) {
-      const client = await clerkClient();
-      const user = await client.users.getUser(userId);
-      const email = user.emailAddresses
-        .find((e) => e.id === user.primaryEmailAddressId)
-        ?.emailAddress?.toLowerCase();
-
-      if (!email || !allowedEmails.has(email)) {
-        return NextResponse.redirect(new URL('/unauthorized', req.url));
-      }
+  // Verify session JWT
+  const token = req.cookies.get(COOKIE_NAME)?.value;
+  if (token) {
+    try {
+      await jwtVerify(token, getSecret());
+      return NextResponse.next();
+    } catch {
+      // Invalid/expired token — fall through to redirect
     }
   }
-});
+
+  // Unauthenticated: redirect to sign-in
+  const signInUrl = new URL('/sign-in', req.url);
+  signInUrl.searchParams.set('redirect_url', pathname);
+  return NextResponse.redirect(signInUrl);
+}
 
 export const config = {
   matcher: [

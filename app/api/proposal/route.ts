@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { auth, currentUser } from '@clerk/nextjs/server';
+import { getSession } from '@/lib/auth/session';
 import { connectDB } from '@/lib/db/mongoose';
 import ProposalModel from '@/lib/db/models/Proposal';
 import { v4 as uuidv4 } from 'uuid';
@@ -23,8 +23,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
     }
 
-    const { userId } = await auth();
-    const user = userId ? await currentUser() : null;
+    const session = await getSession(req);
+    const username = session?.username ?? null;
 
     const sessionId = parsed.data.sessionId ?? uuidv4();
     const proposal = await ProposalModel.create({
@@ -38,9 +38,9 @@ export async function POST(req: NextRequest) {
       theme: 'default',
       sections: {},
       createdBy: {
-        userId: userId ?? null,
-        email: user?.emailAddresses[0]?.emailAddress ?? null,
-        name: user?.fullName ?? null,
+        userId: username,
+        email: username,
+        name: username,
       },
     });
 

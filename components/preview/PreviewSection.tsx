@@ -57,14 +57,15 @@ export function WhyChooseUsPreview() {
 interface Props {
   sectionKey: SectionKey;
   sections: ProposalSections;
+  theme?: string;
 }
 
-export function PreviewSection({ sectionKey, sections }: Props) {
+export function PreviewSection({ sectionKey, sections, theme }: Props) {
   const section = sections[sectionKey];
 
   switch (sectionKey) {
     case 'coverPage':
-      return <CoverPreview data={section.data as CoverPageData} />;
+      return <CoverPreview data={section.data as CoverPageData} theme={theme} />;
     case 'introduction':
       return <IntroPreview data={section.data as IntroductionData} />;
     case 'keyModules':
@@ -105,34 +106,51 @@ function SectionHeader({ title }: { title: string }) {
   );
 }
 
-function CoverPreview({ data }: { data: CoverPageData }) {
+const COVER_STYLES: Record<string, { bg: string; accent: string; subtext: string }> = {
+  default:   { bg: '#0B1220', accent: '#E85D2B', subtext: '#9CA3AF' },
+  dark:      { bg: '#0B1220', accent: '#E85D2B', subtext: '#9CA3AF' },
+  minimal:   { bg: '#1E3A5F', accent: '#E85D2B', subtext: '#93C5FD' },
+  lightBlue: { bg: '#1E3A5F', accent: '#E85D2B', subtext: '#93C5FD' },
+  darkBlue:  { bg: '#0A1628', accent: '#3B82F6', subtext: '#60A5FA' },
+};
+
+function CoverPreview({ data, theme }: { data: CoverPageData; theme?: string }) {
+  const styles = COVER_STYLES[theme ?? 'default'] ?? COVER_STYLES.default;
   return (
-    <div className="bg-[#0B1220] text-white rounded-lg p-6 mb-4">
+    <div className="rounded-lg p-6 mb-4 text-white" style={{ backgroundColor: styles.bg }}>
       <div className="flex items-center gap-3 mb-6">
-        <div className="w-10 h-10 bg-[#E85D2B] rounded-md flex items-center justify-center flex-shrink-0">
+        <div
+          className="w-10 h-10 rounded-md flex items-center justify-center flex-shrink-0"
+          style={{ backgroundColor: styles.accent }}
+        >
           <span className="font-bold text-sm text-white">AM</span>
         </div>
-        <div className="h-10 bg-[#E85D2B] rounded-md px-4 flex items-center justify-center">
+        <div
+          className="h-10 rounded-md px-4 flex items-center justify-center"
+          style={{ backgroundColor: styles.accent }}
+        >
           <span className="font-bold text-sm text-white">ARGOS MOB TECH & AI PVT. LTD.</span>
         </div>
       </div>
-      <div className="text-[#E85D2B] text-xs tracking-widest uppercase mb-2">Scope of Work / Proposal</div>
+      <div className="text-xs tracking-widest uppercase mb-2" style={{ color: styles.accent }}>
+        Scope of Work / Proposal
+      </div>
       <h2 className="text-xl font-bold mb-6">{data.projectTitle || 'Project Title'}</h2>
-      <div className="border-l-2 border-[#E85D2B] pl-3 mb-6">
-        <div className="text-gray-400 text-xs mb-1">PREPARED FOR</div>
+      <div className="pl-3 mb-6" style={{ borderLeft: `2px solid ${styles.accent}` }}>
+        <div className="text-xs mb-1" style={{ color: styles.subtext }}>PREPARED FOR</div>
         <div className="text-lg font-bold">{data.clientName || 'Client Name'}</div>
       </div>
       <div className="flex gap-6 text-xs">
         <div>
-          <div className="text-gray-500">PREPARED BY</div>
+          <div style={{ color: styles.subtext }}>PREPARED BY</div>
           <div>{data.preparedBy}</div>
         </div>
         <div>
-          <div className="text-gray-500">DATE</div>
+          <div style={{ color: styles.subtext }}>DATE</div>
           <div>{data.date}</div>
         </div>
         <div>
-          <div className="text-gray-500">VERSION</div>
+          <div style={{ color: styles.subtext }}>VERSION</div>
           <div>{data.version}</div>
         </div>
       </div>
@@ -152,24 +170,47 @@ function IntroPreview({ data }: { data: IntroductionData }) {
 }
 
 function KeyModulesPreview({ data }: { data: KeyModulesData }) {
+  if (!data.content) {
+    return (
+      <div className="mb-4">
+        <SectionHeader title="Key Modules & Features" />
+        <p className="text-xs text-gray-400 italic">Key modules & features will appear here...</p>
+      </div>
+    );
+  }
+
+  // Parse content into groups and bullets for styled rendering
+  type ParsedLine = { type: 'header'; text: string } | { type: 'bullet'; text: string } | { type: 'text'; text: string };
+  const parsed: ParsedLine[] = data.content.split('\n').map((line) => {
+    const trimmed = line.trim();
+    if (!trimmed) return { type: 'text', text: '' };
+    if (trimmed.endsWith(':') && !trimmed.startsWith('•')) return { type: 'header', text: trimmed.slice(0, -1) };
+    if (trimmed.startsWith('•')) return { type: 'bullet', text: trimmed.slice(1).trim() };
+    return { type: 'text', text: trimmed };
+  });
+
   return (
     <div className="mb-4">
       <SectionHeader title="Key Modules & Features" />
-      {data.groups.map((group) => (
-        <div key={group.id} className="mb-3">
-          <div className="bg-[#0B1220] text-white text-xs font-bold px-2 py-1 rounded mb-2">
-            {group.groupName.toUpperCase()}
-          </div>
-          <div className="space-y-1 pl-2">
-            {group.features.filter((f) => f.checked).map((feature) => (
-              <div key={feature.id} className="flex items-center gap-1.5 text-xs text-gray-700">
-                <span className="w-1.5 h-1.5 bg-[#E85D2B] rounded-full inline-block flex-shrink-0" />
-                {feature.label}
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
+      {parsed.map((line, i) => {
+        if (!line.text) return <div key={i} className="h-1" />;
+        if (line.type === 'header') {
+          return (
+            <div key={i} className="bg-[#0B1220] text-white text-xs font-bold px-2 py-1 rounded mb-2 mt-3 first:mt-0">
+              {line.text.toUpperCase()}
+            </div>
+          );
+        }
+        if (line.type === 'bullet') {
+          return (
+            <div key={i} className="flex items-center gap-1.5 text-xs text-gray-700 pl-2 mb-1">
+              <span className="w-1.5 h-1.5 bg-[#E85D2B] rounded-full inline-block flex-shrink-0" />
+              {line.text}
+            </div>
+          );
+        }
+        return <p key={i} className="text-xs text-gray-700 mb-1">{line.text}</p>;
+      })}
     </div>
   );
 }

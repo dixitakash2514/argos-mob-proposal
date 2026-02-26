@@ -31,7 +31,7 @@ export function ProposalDocument({ proposal }: Props) {
       keywords="proposal, argosmob, software development"
     >
       {/* Cover Page — always included */}
-      <CoverPage data={sections.coverPage.data} />
+      <CoverPage data={sections.coverPage.data} theme={proposal.theme} />
 
       {/* Why Choose Us — always included */}
       <WhyChooseUs />

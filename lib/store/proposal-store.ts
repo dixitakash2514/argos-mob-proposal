@@ -45,7 +45,7 @@ function makeDefaultSections(): ProposalSections {
       status: 'pending',
       aiGenerated: false,
       userModified: false,
-      data: { groups: [], customFeatures: [] } as KeyModulesData,
+      data: { content: '' } as KeyModulesData,
     },
     techStack: {
       status: 'pending',
@@ -251,7 +251,9 @@ export const useProposalStore = create<ProposalStoreState>((set) => ({
       },
     }),
 
-  loadProposal: (data) => set({ proposal: data }),
+  loadProposal: (data) => set({
+    proposal: { ...data, sections: { ...makeDefaultSections(), ...data.sections } },
+  }),
 
   setProposalField: (field, value) =>
     set((state) => {
