@@ -1,36 +1,40 @@
 /**
  * Lightweight markdown → react-pdf renderer.
- * Handles: # headings, ## section headers, bullet lists, numbered lists,
- * **bold** inline, blank lines, horizontal rules, plain paragraphs.
+ * Handles: # h1, ## h2 (dark box), ### h3, **bold** inline,
+ * - bullets, 1. numbered lists, blank lines, HR, plain paragraphs.
+ * Backward compatible: "Group Name:" legacy format still renders as dark header.
  */
 import { Text, View } from '@react-pdf/renderer';
 import type { Style } from '@react-pdf/types';
 import type { ReactNode } from 'react';
 
-// ─── Inline bold parsing ───────────────────────────────────────────────────────
+// ─── Inline parser ─────────────────────────────────────────────────────────────
 type Seg = { text: string; bold?: boolean };
 
+/**
+ * Split a line into plain/bold segments.
+ * Uses String.split with a capture group — more reliable than regex.exec.
+ */
 function parseInline(raw: string): Seg[] {
-  // Normalise ***bold italic*** → **bold**, strip *italic*, strip `code`
-  const cleaned = raw
-    .replace(/\*\*\*([^*]+)\*\*\*/g, '**$1**')
-    .replace(/(?<!\*)\*(?!\*)([^*\n]+)(?<!\*)\*(?!\*)/g, '$1')
-    .replace(/`([^`\n]+)`/g, '$1');
+  // Normalise *** → ** and strip backtick code spans and *italic*
+  const pre = raw
+    .replace(/\*\*\*([^*]+)\*\*\*/g, '**$1**')  // ***bold italic*** → **bold**
+    .replace(/`([^`\n]+)`/g, '$1')               // `code` → plain
+    .replace(/(?<!\*)\*(?!\*)([^*\n]+)\*(?!\*)/g, '$1'); // *italic* → plain
 
-  const re = /(\*\*[^*\n]+\*\*)/g;
+  // Split on **...** — odd-indexed parts are bold
+  const parts = pre.split(/\*\*([^*\n]+)\*\*/);
   const segs: Seg[] = [];
-  let last = 0;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(cleaned)) !== null) {
-    if (m.index > last) segs.push({ text: cleaned.slice(last, m.index) });
-    segs.push({ text: m[0].slice(2, -2), bold: true });
-    last = m.index + m[0].length;
+  for (let i = 0; i < parts.length; i++) {
+    const t = parts[i];
+    if (!t) continue;
+    segs.push(i % 2 === 1 ? { text: t, bold: true } : { text: t });
   }
-  if (last < cleaned.length) segs.push({ text: cleaned.slice(last) });
-  return segs.length > 0 ? segs : [{ text: raw }];
+  // Fallback: strip ** markers if split produced nothing useful
+  return segs.length > 0 ? segs : [{ text: raw.replace(/\*\*/g, '') }];
 }
 
-/** Renders a text run with optional **bold** spans as a react-pdf <Text> node */
+/** Renders a text run with optional inline bold as react-pdf <Text> */
 function InlineText({ raw, style }: { raw: string; style: Style }): ReactNode {
   const segs = parseInline(raw);
   const hasBold = segs.some((s) => s.bold);
@@ -39,13 +43,13 @@ function InlineText({ raw, style }: { raw: string; style: Style }): ReactNode {
   }
   return (
     <Text style={style}>
-      {segs.map((seg, i) =>
+      {segs.map((seg, idx) =>
         seg.bold ? (
-          <Text key={i} style={{ fontWeight: 'bold' }}>
+          <Text key={idx} style={{ fontFamily: 'Helvetica-Bold' }}>
             {seg.text}
           </Text>
         ) : (
-          <Text key={i}>{seg.text}</Text>
+          <Text key={idx}>{seg.text}</Text>
         )
       )}
     </Text>
@@ -55,9 +59,7 @@ function InlineText({ raw, style }: { raw: string; style: Style }): ReactNode {
 // ─── Main renderer ─────────────────────────────────────────────────────────────
 export function renderMarkdownToPdf(
   content: string,
-  /** accent colour for bullets / h2 backgrounds */
   accent = '#E85D2B',
-  /** body font size */
   bodySize = 10,
 ): ReactNode[] {
   const paraStyle: Style = { fontSize: bodySize, color: '#444444', lineHeight: 1.7 };
@@ -78,8 +80,8 @@ export function renderMarkdownToPdf(
       continue;
     }
 
-    // ── HR ──────────────────────────────────────────────────────────────────
-    if (/^---+$/.test(trimmed) || /^\*\*\*+$/.test(trimmed)) {
+    // ── Horizontal rule ─────────────────────────────────────────────────────
+    if (/^[-*]{3,}$/.test(trimmed)) {
       nodes.push(
         <View
           key={`hr-${i}`}
@@ -94,7 +96,7 @@ export function renderMarkdownToPdf(
       nodes.push(
         <Text
           key={`h1-${i}`}
-          style={{ fontSize: 14, fontWeight: 'bold', color: '#0B1220', marginBottom: 6, marginTop: 10 }}
+          style={{ fontFamily: 'Helvetica-Bold', fontSize: 14, color: '#0B1220', marginBottom: 6, marginTop: 10 }}
         >
           {trimmed.replace(/^# /, '')}
         </Text>
@@ -102,9 +104,8 @@ export function renderMarkdownToPdf(
       continue;
     }
 
-    // ── H2 — dark-bg section header (Key Modules style) ────────────────────
+    // ── H2 — dark section header ─────────────────────────────────────────────
     if (/^## /.test(trimmed)) {
-      const text = trimmed.replace(/^## /, '');
       nodes.push(
         <View
           key={`h2-${i}`}
@@ -119,8 +120,8 @@ export function renderMarkdownToPdf(
             marginTop: 8,
           }}
         >
-          <Text style={{ color: 'white', fontSize: 9, fontWeight: 'bold' }}>
-            {text.toUpperCase()}
+          <Text style={{ fontFamily: 'Helvetica-Bold', color: 'white', fontSize: 9 }}>
+            {trimmed.replace(/^## /, '').toUpperCase()}
           </Text>
         </View>
       );
@@ -132,7 +133,7 @@ export function renderMarkdownToPdf(
       nodes.push(
         <Text
           key={`h3-${i}`}
-          style={{ fontSize: 11, fontWeight: 'bold', color: '#0B1220', marginBottom: 4, marginTop: 6 }}
+          style={{ fontFamily: 'Helvetica-Bold', fontSize: 11, color: '#0B1220', marginBottom: 4, marginTop: 6 }}
         >
           {trimmed.replace(/^### /, '')}
         </Text>
@@ -145,9 +146,24 @@ export function renderMarkdownToPdf(
       nodes.push(
         <Text
           key={`h4-${i}`}
-          style={{ fontSize: 10, fontWeight: 'bold', color: '#374151', marginBottom: 3, marginTop: 4 }}
+          style={{ fontFamily: 'Helvetica-Bold', fontSize: 10, color: '#374151', marginBottom: 3, marginTop: 4 }}
         >
           {trimmed.replace(/^#### /, '')}
+        </Text>
+      );
+      continue;
+    }
+
+    // ── Standalone **bold** line (full line is **text**) ────────────────────
+    // Treat as a sub-heading (common in LLM-generated markdown)
+    const boldLineMatch = trimmed.match(/^\*\*([^*]+)\*\*$/);
+    if (boldLineMatch) {
+      nodes.push(
+        <Text
+          key={`bh-${i}`}
+          style={{ fontFamily: 'Helvetica-Bold', fontSize: 10, color: '#0B1220', marginBottom: 3, marginTop: 6 }}
+        >
+          {boldLineMatch[1]}
         </Text>
       );
       continue;
@@ -160,12 +176,7 @@ export function renderMarkdownToPdf(
         <View
           key={`bullet-${i}`}
           wrap={false}
-          style={{
-            flexDirection: 'row',
-            alignItems: 'flex-start',
-            marginBottom: 3,
-            paddingLeft: 8,
-          }}
+          style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 3, paddingLeft: 8 }}
         >
           <View
             style={{
@@ -195,7 +206,7 @@ export function renderMarkdownToPdf(
           wrap={false}
           style={{ flexDirection: 'row', marginBottom: 3, paddingLeft: 8 }}
         >
-          <Text style={{ fontSize: 9, color: accent, fontWeight: 'bold', width: 16 }}>
+          <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 9, color: accent, width: 16 }}>
             {numMatch[1]}.
           </Text>
           <View style={{ flex: 1 }}>
@@ -206,12 +217,11 @@ export function renderMarkdownToPdf(
       continue;
     }
 
-    // ── Legacy Key Modules format: "Group Name:" → dark bg header ──────────
+    // ── Legacy format: "Group Name:" → dark section header ─────────────────
     if (trimmed.endsWith(':') && !trimmed.startsWith('-') && trimmed.length < 80) {
-      const text = trimmed.slice(0, -1);
       nodes.push(
         <View
-          key={`legacy-h-${i}`}
+          key={`legacy-${i}`}
           style={{
             backgroundColor: '#0B1220',
             paddingTop: 5,
@@ -223,8 +233,8 @@ export function renderMarkdownToPdf(
             marginTop: 8,
           }}
         >
-          <Text style={{ color: 'white', fontSize: 9, fontWeight: 'bold' }}>
-            {text.toUpperCase()}
+          <Text style={{ fontFamily: 'Helvetica-Bold', color: 'white', fontSize: 9 }}>
+            {trimmed.slice(0, -1).toUpperCase()}
           </Text>
         </View>
       );

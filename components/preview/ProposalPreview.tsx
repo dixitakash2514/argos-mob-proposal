@@ -271,6 +271,27 @@ export function ProposalPreview({ readOnly = false }: ProposalPreviewProps) {
             </div>
           )}
 
+          {/* Already-confirmed section — show a Continue button so back-navigation doesn't dead-end */}
+          {!readOnly && isCurrentConfirmed && !isLastSection && currentSection !== 'coverPage' && (
+            <div className="border-t border-gray-100 pt-4 mt-1">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
+                  ✓ Confirmed
+                </span>
+                <span className="text-[10px] text-gray-400">{currentSectionMeta?.title}</span>
+              </div>
+              <button
+                onClick={() => setNextSectionPending(true)}
+                className="w-full py-2.5 rounded-xl text-sm font-semibold transition-all bg-[#0B1220] hover:bg-[#1a2535] text-white shadow-sm active:scale-[0.99] flex items-center justify-center gap-2"
+              >
+                <span>Continue</span>
+                {nextSectionMeta && (
+                  <span className="opacity-50 text-xs font-normal">→ {nextSectionMeta.title}</span>
+                )}
+              </button>
+            </div>
+          )}
+
           {/* Proposal complete state */}
           {isCurrentConfirmed && isLastSection && (
             <div className="text-center py-8">
