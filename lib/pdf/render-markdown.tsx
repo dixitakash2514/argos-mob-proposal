@@ -56,6 +56,11 @@ function InlineText({ raw, style }: { raw: string; style: Style }): ReactNode {
   );
 }
 
+/** Strip bold/italic markers from heading text extracted after removing the heading prefix. */
+function stripMarkers(text: string): string {
+  return text.replace(/\*\*/g, '').replace(/(?<!\*)\*(?!\*)/g, '').trim();
+}
+
 // ─── Main renderer ─────────────────────────────────────────────────────────────
 export function renderMarkdownToPdf(
   content: string,
@@ -98,7 +103,7 @@ export function renderMarkdownToPdf(
           key={`h1-${i}`}
           style={{ fontFamily: 'Helvetica-Bold', fontSize: 14, color: '#0B1220', marginBottom: 6, marginTop: 10 }}
         >
-          {trimmed.replace(/^# /, '')}
+          {stripMarkers(trimmed.replace(/^# /, ''))}
         </Text>
       );
       continue;
@@ -121,7 +126,7 @@ export function renderMarkdownToPdf(
           }}
         >
           <Text style={{ fontFamily: 'Helvetica-Bold', color: 'white', fontSize: 9 }}>
-            {trimmed.replace(/^## /, '').toUpperCase()}
+            {stripMarkers(trimmed.replace(/^## /, '')).toUpperCase()}
           </Text>
         </View>
       );
@@ -135,7 +140,7 @@ export function renderMarkdownToPdf(
           key={`h3-${i}`}
           style={{ fontFamily: 'Helvetica-Bold', fontSize: 11, color: '#0B1220', marginBottom: 4, marginTop: 6 }}
         >
-          {trimmed.replace(/^### /, '')}
+          {stripMarkers(trimmed.replace(/^### /, ''))}
         </Text>
       );
       continue;
@@ -148,7 +153,7 @@ export function renderMarkdownToPdf(
           key={`h4-${i}`}
           style={{ fontFamily: 'Helvetica-Bold', fontSize: 10, color: '#374151', marginBottom: 3, marginTop: 4 }}
         >
-          {trimmed.replace(/^#### /, '')}
+          {stripMarkers(trimmed.replace(/^#### /, ''))}
         </Text>
       );
       continue;
