@@ -52,8 +52,9 @@ export async function POST(req: NextRequest) {
           }
           controller.enqueue(encoder.encode('data: [DONE]\n\n'));
         } catch (err) {
+          const msg = err instanceof Error ? err.message : 'Stream error';
           controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify({ error: 'Stream error' })}\n\n`)
+            encoder.encode(`data: ${JSON.stringify({ error: msg })}\n\n`)
           );
         } finally {
           controller.close();
@@ -69,7 +70,8 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (err) {
-    console.error('[/api/chat] Error:', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    const msg = err instanceof Error ? err.message : 'Internal server error';
+    console.error('[/api/chat] Error:', msg, err);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

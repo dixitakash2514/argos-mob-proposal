@@ -18,8 +18,7 @@ export async function generateSectionStream(
       { role: 'user', content: userMessage },
     ],
     temperature: 0.7,
-    max_completion_tokens: 8192,
-    reasoning_effort: 'medium' as never,
+    max_tokens: 8192,
     stream: true,
   });
 

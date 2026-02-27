@@ -129,7 +129,10 @@ export function ChatPanel() {
           }),
         });
 
-        if (!res.ok) throw new Error('Chat API error');
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => ({}));
+          throw new Error(errBody?.error ?? `Chat API error (${res.status})`);
+        }
         if (!res.body) throw new Error('No response body');
 
         const reader = res.body.getReader();
@@ -150,11 +153,15 @@ export function ChatPanel() {
 
             try {
               const parsed = JSON.parse(data);
+              if (parsed.error) throw new Error(parsed.error);
               if (parsed.text) {
                 fullContent += parsed.text;
                 updateLastMessage(fullContent);
               }
-            } catch {
+            } catch (parseErr) {
+              if (parseErr instanceof Error && parseErr.message !== 'Unexpected token') {
+                throw parseErr;
+              }
               // ignore partial chunk parse errors
             }
           }
@@ -166,8 +173,9 @@ export function ChatPanel() {
         // Auto-save to DB
         await autoSave(proposal.id);
       } catch (err) {
-        console.error('Chat error:', err);
-        updateLastMessage('AI is unavailable right now. You can paste content manually to continue, or retry.');
+        const errMsg = err instanceof Error ? err.message : 'Unknown error';
+        console.error('Chat error:', errMsg);
+        updateLastMessage(`AI is unavailable right now (${errMsg}). You can paste content manually to continue, or retry.`);
         openManualModal(currentSection, 'error');
       } finally {
         setIsStreaming(false);
