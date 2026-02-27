@@ -402,7 +402,7 @@ function parseCostAmount(s: string): number {
 function computeLineItemsTotal(items: CostRow[]): string {
   const total = items.reduce((sum, row) => sum + parseCostAmount(row.estimatedCost), 0);
   if (total === 0) return '';
-  return `₹${total.toLocaleString('en-IN')}`;
+  return total.toLocaleString('en-IN');
 }
 
 function CostEstimationForm({
@@ -495,7 +495,7 @@ function CostEstimationForm({
         {/* Auto-computed total */}
         <div className="mt-2 flex items-center justify-between px-2 py-1.5 bg-white/5 border border-white/10 rounded">
           <span className="text-xs text-gray-400">Total Estimated Cost</span>
-          <span className="text-sm font-semibold text-white">{computedTotal || '—'}</span>
+          <span className="text-sm font-semibold text-white">{computedTotal ? `₹${computedTotal}` : '—'}</span>
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3">

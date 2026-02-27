@@ -56,7 +56,7 @@ export function CostEstimation({ data }: { data: CostEstimationData }) {
             Total Estimated Cost:{' '}
           </Text>
           <Text style={{ fontSize: 11, color: '#E85D2B', fontWeight: 'bold', textAlign: 'right' }}>
-            ₹{data.totalProjectCost} + {data.gst}% GST
+            Rs.{String(data.totalProjectCost ?? '').replace(/^₹+/, '')}+ {data.gst}% GST
           </Text>
         </View>
       </View>

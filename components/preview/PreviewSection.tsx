@@ -327,7 +327,7 @@ function CostPreview({ data }: { data: CostEstimationData }) {
       </table>
       <div className="bg-[#0B1220] text-white flex justify-between px-3 py-2 rounded text-sm font-bold">
         <span>Total Estimated Cost</span>
-        <span className="text-[#E85D2B]">₹{data.totalProjectCost} + {data.gst}% GST</span>
+        <span className="text-[#E85D2B]">₹{String(data.totalProjectCost ?? '').replace(/^₹+/, '')} + {data.gst}% GST</span>
       </div>
       <p className="text-xs text-gray-500 mt-2">{data.paymentTerms}</p>
     </div>
