@@ -55,46 +55,94 @@ export function MessageBubble({ message }: MessageBubbleProps) {
   );
 }
 
+function TableBlock({ lines }: { lines: string[] }) {
+  const isSep = (l: string) => /^\|[\s|:-]+\|/.test(l);
+  const parseRow = (l: string) => l.split('|').slice(1, -1).map((c) => c.trim());
+  const nonSep = lines.filter((l) => !isSep(l));
+  if (nonSep.length === 0) return null;
+  const [header, ...dataRows] = nonSep;
+  const headers = parseRow(header);
+  const rows = dataRows.map(parseRow);
+  return (
+    <div className="overflow-x-auto my-2">
+      <table className="min-w-full text-xs border-collapse">
+        <thead>
+          <tr className="bg-[#0B1220] text-white">
+            {headers.map((h, hi) => (
+              <th key={hi} className="px-2 py-1.5 text-left whitespace-nowrap border-r border-gray-700 last:border-r-0">
+                {h}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, ri) => (
+            <tr key={ri} className="border-b border-gray-100 odd:bg-gray-50">
+              {row.map((cell, ci) => (
+                <td key={ci} className="px-2 py-1 text-gray-700">{cell}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function MessageContent({ content }: { content: string }) {
-  // Simple markdown-to-JSX renderer (handles bold, lists, code blocks)
   const lines = content.split('\n');
+  const isSepLine = (l: string) => /^\|[\s|:-]+\|/.test(l);
+
+  // Group lines into table blocks vs individual lines
+  const blocks: Array<{ kind: 'table'; lines: string[] } | { kind: 'line'; text: string }> = [];
+  let i = 0;
+  while (i < lines.length) {
+    if (lines[i].startsWith('|') && i + 1 < lines.length && isSepLine(lines[i + 1])) {
+      const tableLines: string[] = [];
+      while (i < lines.length && lines[i].startsWith('|')) {
+        tableLines.push(lines[i]);
+        i++;
+      }
+      blocks.push({ kind: 'table', lines: tableLines });
+    } else {
+      blocks.push({ kind: 'line', text: lines[i] });
+      i++;
+    }
+  }
 
   return (
     <div className="prose prose-sm max-w-none">
-      {lines.map((line, i) => {
-        if (line.startsWith('### ')) {
-          return <h3 key={i} className="font-bold text-sm mt-2 mb-1">{line.slice(4)}</h3>;
+      {blocks.map((block, bi) => {
+        if (block.kind === 'table') {
+          return <TableBlock key={`t${bi}`} lines={block.lines} />;
         }
-        if (line.startsWith('## ')) {
-          return <h2 key={i} className="font-bold text-base mt-2 mb-1">{line.slice(3)}</h2>;
-        }
-        if (line.startsWith('# ')) {
-          return <h1 key={i} className="font-bold text-lg mt-2 mb-1">{line.slice(2)}</h1>;
-        }
-        if (line.startsWith('- ') || line.startsWith('* ')) {
+        const line = block.text;
+        const key = `l${bi}`;
+        if (line.startsWith('### '))
+          return <h3 key={key} className="font-bold text-sm mt-2 mb-1">{line.slice(4)}</h3>;
+        if (line.startsWith('## '))
+          return <h2 key={key} className="font-bold text-base mt-2 mb-1">{line.slice(3)}</h2>;
+        if (line.startsWith('# '))
+          return <h1 key={key} className="font-bold text-lg mt-2 mb-1">{line.slice(2)}</h1>;
+        if (line.startsWith('- ') || line.startsWith('* '))
           return (
-            <div key={i} className="flex gap-2 items-start">
+            <div key={key} className="flex gap-2 items-start">
               <span className="text-[#E85D2B] mt-0.5">•</span>
               <span>{renderInline(line.slice(2))}</span>
             </div>
           );
-        }
         if (line.match(/^\d+\. /)) {
           const num = line.match(/^(\d+)\. /)?.[1];
           return (
-            <div key={i} className="flex gap-2 items-start">
+            <div key={key} className="flex gap-2 items-start">
               <span className="text-[#E85D2B] font-mono text-xs mt-0.5">{num}.</span>
               <span>{renderInline(line.replace(/^\d+\. /, ''))}</span>
             </div>
           );
         }
-        if (line.startsWith('```')) {
-          return null; // handled by block below
-        }
-        if (line === '') {
-          return <div key={i} className="h-2" />;
-        }
-        return <p key={i} className="my-0.5">{renderInline(line)}</p>;
+        if (line.startsWith('```')) return null;
+        if (line === '') return <div key={key} className="h-2" />;
+        return <p key={key} className="my-0.5">{renderInline(line)}</p>;
       })}
     </div>
   );

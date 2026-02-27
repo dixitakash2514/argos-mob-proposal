@@ -5,6 +5,7 @@ import { Watermark } from '../shared/Watermark';
 import type { DeliveryComponentsData } from '@/types/proposal';
 
 export function DeliveryComponents({ data }: { data: DeliveryComponentsData }) {
+  const includedComponents = data.components.filter((c) => c.included);
   return (
     <Page size="A4" style={{ padding: 40, paddingBottom: 60, fontFamily: 'Helvetica' }}>
       <Watermark />
@@ -21,11 +22,10 @@ export function DeliveryComponents({ data }: { data: DeliveryComponentsData }) {
 
       {/* Table */}
       <View style={{ flexDirection: 'row', backgroundColor: '#0B1220', padding: '6 8' }}>
-        <Text style={{ flex: 2, color: 'white', fontSize: 8, fontWeight: 'bold' }}>DELIVERABLE</Text>
-        <Text style={{ flex: 1, color: 'white', fontSize: 8, fontWeight: 'bold', textAlign: 'center' }}>INCLUDED</Text>
+        <Text style={{ flex: 1, color: 'white', fontSize: 8, fontWeight: 'bold' }}>DELIVERABLE</Text>
       </View>
 
-      {data.components.map((comp, i) => (
+      {includedComponents.map((comp, i) => (
         <View
           key={comp.name}
           style={{
@@ -36,12 +36,8 @@ export function DeliveryComponents({ data }: { data: DeliveryComponentsData }) {
             alignItems: 'center',
           }}
         >
-          <Text style={{ flex: 2, fontSize: 9, color: '#111' }}>{comp.name}</Text>
-          <View style={{ flex: 1, alignItems: 'center' }}>
-            <Text style={{ fontSize: 9, color: comp.included ? '#16A34A' : '#DC2626', fontWeight: 'bold' }}>
-              {comp.included ? '✓ Yes' : '✗ No'}
-            </Text>
-          </View>
+          <Text style={{ fontSize: 9, color: '#16A34A', fontWeight: 'bold', marginRight: 6 }}>✓</Text>
+          <Text style={{ flex: 1, fontSize: 9, color: '#111' }}>{comp.name}</Text>
         </View>
       ))}
 

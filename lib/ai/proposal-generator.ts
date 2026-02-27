@@ -19,7 +19,6 @@ export async function generateSectionStream(
     ],
     temperature: 0.7,
     max_completion_tokens: 8192,
-    reasoning_effort: 'medium' as never,
     stream: true,
   });
 
@@ -44,7 +43,6 @@ export async function generateSectionContent(
     ],
     temperature: 0.7,
     max_completion_tokens: 8192,
-    reasoning_effort: 'medium' as never,
     stream: false,
   });
 

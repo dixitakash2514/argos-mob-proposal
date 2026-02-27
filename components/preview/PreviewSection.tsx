@@ -220,11 +220,24 @@ function IntroPreview({ data }: { data: IntroductionData }) {
   );
 }
 
+// Convert AI key-modules format (• bullets + ALL CAPS: headers) to proper markdown
+function normalizeKeyModulesContent(raw: string): string {
+  return raw
+    .split('\n')
+    .map((line) => {
+      if (/^[•·]\s/.test(line)) return '- ' + line.replace(/^[•·]\s+/, '');
+      if (/^[A-Z][A-Z0-9\s&/(),-]+:\s*$/.test(line.trim()) && line.trim().length > 3)
+        return '## ' + line.trim();
+      return line;
+    })
+    .join('\n');
+}
+
 function KeyModulesPreview({ data }: { data: KeyModulesData }) {
   return (
     <div className="mb-4">
       <SectionHeader title="Key Modules & Features" />
-      <MarkdownPreview content={data.content} placeholder="Key modules & features will appear here..." />
+      <MarkdownPreview content={normalizeKeyModulesContent(data.content)} placeholder="Key modules & features will appear here..." />
     </div>
   );
 }
@@ -261,27 +274,31 @@ function TechStackPreview({ data }: { data: TechStackData }) {
 }
 
 function DeliveryPreview({ data }: { data: DeliveryComponentsData }) {
+  const included = data.components.filter((c) => c.included);
   return (
     <div className="mb-4">
       <SectionHeader title="Delivery Components" />
-      <table className="w-full text-xs border-collapse">
-        <thead>
-          <tr className="bg-[#0B1220] text-white">
-            <th className="text-left px-2 py-1.5">Deliverable</th>
-            <th className="text-center px-2 py-1.5">Included</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.components.map((comp, i) => (
-            <tr key={comp.name} className="border-b border-gray-100 odd:bg-gray-50">
-              <td className="px-2 py-1.5">{comp.name}</td>
-              <td className={`px-2 py-1.5 text-center font-bold ${comp.included ? 'text-green-600' : 'text-red-500'}`}>
-                {comp.included ? '✓' : '✗'}
-              </td>
+      {included.length === 0 ? (
+        <p className="text-xs text-gray-400 italic">No components selected.</p>
+      ) : (
+        <table className="w-full text-xs border-collapse">
+          <thead>
+            <tr className="bg-[#0B1220] text-white">
+              <th className="text-left px-2 py-1.5">Deliverable</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {included.map((comp, i) => (
+              <tr key={comp.name} className="border-b border-gray-100 odd:bg-gray-50">
+                <td className="px-2 py-1.5 flex items-center gap-2">
+                  <span className="text-green-600 font-bold">✓</span>
+                  <span>{comp.name}</span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }

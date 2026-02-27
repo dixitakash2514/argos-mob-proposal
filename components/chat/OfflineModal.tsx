@@ -394,6 +394,17 @@ function DeliveryComponentsForm({
   );
 }
 
+function parseCostAmount(s: string): number {
+  const num = parseFloat(s.replace(/[^0-9.]/g, ''));
+  return isNaN(num) ? 0 : num;
+}
+
+function computeLineItemsTotal(items: CostRow[]): string {
+  const total = items.reduce((sum, row) => sum + parseCostAmount(row.estimatedCost), 0);
+  if (total === 0) return '';
+  return `₹${total.toLocaleString('en-IN')}`;
+}
+
 function CostEstimationForm({
   data,
   onChange,
@@ -403,18 +414,19 @@ function CostEstimationForm({
 }) {
   const lineItems = (data.lineItems as CostRow[]) || [];
 
+  const updateWithTotal = (newItems: CostRow[]) => {
+    const total = computeLineItemsTotal(newItems);
+    onChange({ ...data, lineItems: newItems, ...(total ? { totalProjectCost: total } : {}) });
+  };
+
   const updateRow = (i: number, field: keyof CostRow, value: string) =>
-    onChange({
-      ...data,
-      lineItems: lineItems.map((row, j) => (j === i ? { ...row, [field]: value } : row)),
-    });
+    updateWithTotal(lineItems.map((row, j) => (j === i ? { ...row, [field]: value } : row)));
   const addRow = () =>
-    onChange({
-      ...data,
-      lineItems: [...lineItems, { product: '', estimatedTime: '', estimatedCost: '' }],
-    });
+    updateWithTotal([...lineItems, { product: '', estimatedTime: '', estimatedCost: '' }]);
   const deleteRow = (i: number) =>
-    onChange({ ...data, lineItems: lineItems.filter((_, j) => j !== i) });
+    updateWithTotal(lineItems.filter((_, j) => j !== i));
+
+  const computedTotal = computeLineItemsTotal(lineItems);
 
   return (
     <>
@@ -480,14 +492,13 @@ function CostEstimationForm({
             ))}
           </tbody>
         </table>
+        {/* Auto-computed total */}
+        <div className="mt-2 flex items-center justify-between px-2 py-1.5 bg-white/5 border border-white/10 rounded">
+          <span className="text-xs text-gray-400">Total Estimated Cost</span>
+          <span className="text-sm font-semibold text-white">{computedTotal || '—'}</span>
+        </div>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <InputField
-          label="Total Project Cost"
-          value={(data.totalProjectCost as string) || ''}
-          onChange={(v) => onChange({ ...data, totalProjectCost: v })}
-          placeholder="e.g. 5,00,000"
-        />
         <NumberInput
           label="GST (%)"
           value={(data.gst as number) ?? 18}
@@ -579,12 +590,6 @@ function ProposedTeamForm({
           </tbody>
         </table>
       </div>
-      <InputField
-        label="Total Duration"
-        value={(data.totalDuration as string) || ''}
-        onChange={(v) => onChange({ ...data, totalDuration: v })}
-        placeholder="e.g. 3 months"
-      />
     </>
   );
 }
@@ -797,13 +802,20 @@ function WarrantyForm({
       <NumberInput
         label="Warranty Period (days)"
         value={(data.periodDays as number) ?? 90}
-        onChange={(v) => onChange({ ...data, periodDays: v })}
+        onChange={(v) =>
+          onChange({
+            ...data,
+            periodDays: v,
+            inclusions: [`${v} Days Warranty for Bug Fixes`],
+          })
+        }
       />
-      <BulletListEditor
-        label="Inclusions"
-        items={(data.inclusions as string[]) || []}
-        onChange={(v) => onChange({ ...data, inclusions: v })}
-      />
+      <div className="mb-3 px-2 py-1.5 bg-white/5 border border-white/10 rounded">
+        <span className="text-xs text-gray-400">Inclusions (auto-generated)</span>
+        <p className="text-sm text-gray-300 mt-1">
+          • {(data.periodDays as number) ?? 90} Days Warranty for Bug Fixes
+        </p>
+      </div>
       <BulletListEditor
         label="Exclusions"
         items={(data.exclusions as string[]) || []}
